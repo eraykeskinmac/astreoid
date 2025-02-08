@@ -1,34 +1,73 @@
-# this allows us to use code from
-# the open-source pygame library
-# throughout this file
 import pygame
-
-# Import everything from the constants.py file
 from constants import *
+from player import Player
+from asteroid import Asteroid
+from asteroidfield import AsteroidField
+from shot import Shot
+
 
 def main():
-    print("Starting asteroids!")
-    print(f"Screen width: {SCREEN_WIDTH}")
-    print(f"Screen height: {SCREEN_HEIGHT}")
-
-    # Initialize pygame
     pygame.init()
-
-    # Create the game window
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    clock = pygame.time.Clock()
+    dt = 0
 
-    # Game loop
+    # Create sprite groups
+    updatable = pygame.sprite.Group()
+    drawable = pygame.sprite.Group()
+    asteroids = pygame.sprite.Group()
+    shots = pygame.sprite.Group()
+
+    # Set up player groups
+    Player.containers = (updatable, drawable)
+
+    # Set up asteroid groups
+    Asteroid.containers = (asteroids, updatable, drawable)
+
+    # Set up shot groups
+    Shot.containers = (shots, updatable, drawable)
+
+    # Set up asteroid field
+    AsteroidField.containers = (updatable,)
+
+    # Create player in center of screen (will auto-add to groups)
+    player = Player(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
+
+    # Create asteroid field
+    asteroid_field = AsteroidField()
+
     while True:
-        # Check for quit event
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return
 
-        # Fill screen with black color
         screen.fill("black")
 
-        # Update the display
+        # Update all objects
+        updatable.update(dt)
+
+        # Check for collisions between player and asteroids
+        for asteroid in asteroids:
+            if player.collides_with(asteroid):
+                print("Game over!")
+                return
+
+            # Check for collisions between asteroids and shots
+            for shot in shots:
+                if asteroid.collides_with(shot):
+                    asteroid.split()  # Split or destroy the asteroid
+                    shot.kill()       # Remove shot from all groups
+                    break  # Stop checking other shots for this asteroid
+
+        # Draw all objects
+        for sprite in drawable:
+            sprite.draw(screen)
+
         pygame.display.flip()
+
+        # limit the framerate to 60 FPS
+        dt = clock.tick(60) / 1000
+
 
 if __name__ == "__main__":
     main()
